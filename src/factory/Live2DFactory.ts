@@ -15,6 +15,7 @@ import type { Middleware } from "@/utils/middleware";
 import { runMiddlewares } from "@/utils/middleware";
 import type { JSONObject } from "../types/helpers";
 import { FileLoader } from "./FileLoader";
+import { FileSystemHandleLoader } from "./FileSystemHandleLoader";
 import { ZipLoader } from "./ZipLoader";
 
 export interface Live2DFactoryOptions extends Live2DModelOptions {
@@ -149,6 +150,7 @@ export class Live2DFactory {
      * Middlewares to run through when setting up a Live2DModel.
      */
     static live2DModelMiddlewares: Middleware<Live2DFactoryContext>[] = [
+        FileSystemHandleLoader.factory,
         ZipLoader.factory,
         FileLoader.factory,
         urlToJSON,
@@ -199,13 +201,13 @@ export class Live2DFactory {
     /**
      * Sets up a Live2DModel, populating it with all defined resources.
      * @param live2dModel - The Live2DModel instance.
-     * @param source - Can be one of: settings file URL, settings JSON object, ModelSettings instance.
+     * @param source - Can be one of: settings file URL, settings JSON object, ModelSettings, FileSystemDirectoryHandle instance.
      * @param options - Options for the process.
      * @return Promise that resolves when all resources have been loaded, rejects when error occurs.
      */
     static async setupLive2DModel<IM extends InternalModel>(
         live2dModel: Live2DModel<IM>,
-        source: string | object | IM["settings"],
+        source: string | object | IM["settings"] | FileSystemDirectoryHandle,
         options?: Live2DFactoryOptions,
     ): Promise<void> {
         const textureLoaded = new Promise((resolve) => live2dModel.once("textureLoaded", resolve));
@@ -391,5 +393,6 @@ ExpressionManager.prototype["_loadExpression"] = function (index) {
     return Live2DFactory.loadExpression(this, index);
 };
 
+FileSystemHandleLoader["live2dFactory"] = Live2DFactory;
 FileLoader["live2dFactory"] = Live2DFactory;
 ZipLoader["live2dFactory"] = Live2DFactory;

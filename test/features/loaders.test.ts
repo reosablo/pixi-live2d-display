@@ -4,7 +4,11 @@ import { beforeAll, describe, expect } from "vitest";
 import { Live2DFactory } from "../../src/factory/Live2DFactory";
 import { ZipLoader } from "../../src/factory/ZipLoader";
 import { describeEachModel, test, testEachModel } from "../env";
-import { createFile, defaultOptions } from "../utils";
+import {
+    createFile,
+    createMockDirectoryHandle,
+    defaultOptions,
+} from "../utils";
 
 describe("FileLoader", function () {
     testEachModel("loads model from files", async ({ model: { files }, objectURLs }) => {
@@ -105,6 +109,34 @@ describeEachModel("ZipLoader", ({ model: { name, files, modelJsonUrl, modelJsonW
         expect(model).to.be.instanceOf(Live2DModel);
         model.destroy();
         URL.revokeObjectURL(zipURL);
+        expect(objectURLs).to.be.empty;
+    });
+});
+
+describeEachModel("FileSystemHandleLoader", ({ model: { files } }) => {
+    let directoryHandle: FileSystemDirectoryHandle;
+
+    beforeAll(async () => {
+        const assetFiles = await files();
+        const settingsFilePath = assetFiles.find((file) =>
+            file.name.endsWith(".model.json") ||
+            file.name.endsWith(".model3.json")
+        )!.webkitRelativePath;
+        const rootPath = settingsFilePath.slice(
+            0,
+            settingsFilePath.lastIndexOf("/"),
+        );
+        const modifiedFiles = assetFiles.map((file) =>
+            createFile(file, file.webkitRelativePath.slice(rootPath.length))
+        );
+
+        directoryHandle = createMockDirectoryHandle(modifiedFiles);
+    });
+
+    test("loads model from a FileSystemDirectoryHandle", async ({ objectURLs }) => {
+        const model = await Live2DModel.from(directoryHandle, defaultOptions());
+        expect(model).to.be.instanceOf(Live2DModel);
+        model.destroy();
         expect(objectURLs).to.be.empty;
     });
 });

@@ -332,3 +332,78 @@ export function createBox<T>({ onPut, waitTimeoutMS = 1000 }: BoxOptions<T> = {}
 
     return { put, take, peek };
 }
+
+export function createMockDirectoryHandle(
+    files: readonly File[],
+    basePath = "/",
+): FileSystemDirectoryHandle {
+    const fileMap = new Map(
+        files
+            .filter((file) =>
+                file.webkitRelativePath.startsWith(basePath) &&
+                !file.webkitRelativePath.includes("/", basePath.length)
+            )
+            .map((file) => [
+                file.webkitRelativePath.slice(basePath.length),
+                new File([file], file.name, { type: file.type }),
+            ]),
+    );
+    const directoryNames = [
+        ...new Set(
+            files.filter((file) =>
+                file.webkitRelativePath.startsWith(basePath) &&
+                file.webkitRelativePath.includes("/", basePath.length)
+            )
+                .map((file) =>
+                    file.webkitRelativePath.slice(
+                        basePath.length,
+                        file.webkitRelativePath.indexOf("/", basePath.length),
+                    )
+                ),
+        ),
+    ];
+    const directoryHandleMap = new Map(
+        directoryNames.map((directoryName) => {
+            const relativePath = `${basePath}${directoryName}/`;
+            const descendantFiles = files.filter((file) =>
+                file.webkitRelativePath.startsWith(relativePath)
+            );
+            const directoryHandle = createMockDirectoryHandle(
+                descendantFiles,
+                relativePath,
+            );
+            return [directoryName, directoryHandle];
+        }),
+    );
+
+    const mockDirectoryHandle = Object.assign(
+        Object.create(
+            FileSystemDirectoryHandle.prototype,
+        ) as FileSystemDirectoryHandle,
+        {
+            async *keys() {
+                yield* fileMap.keys();
+                yield* directoryHandleMap.keys();
+                return undefined;
+            },
+            async getFileHandle(name: string) {
+                const file = fileMap.get(name);
+                if (file === undefined) {
+                    throw new Error(`File not found: ${name}`);
+                }
+                return {
+                    getFile: async () => file,
+                } as FileSystemFileHandle;
+            },
+            async getDirectoryHandle(name: string) {
+                const directory = directoryHandleMap.get(name);
+                if (directory === undefined) {
+                    throw new Error(`Directory not found: ${name}`);
+                }
+                return directory;
+            },
+        } satisfies Partial<FileSystemDirectoryHandle>,
+    );
+
+    return mockDirectoryHandle;
+}

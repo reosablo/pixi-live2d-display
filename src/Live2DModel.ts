@@ -29,13 +29,13 @@ export type Live2DConstructor = { new (options?: Live2DModelOptions): Live2DMode
 export class Live2DModel<IM extends InternalModel = InternalModel> extends Container {
     /**
      * Creates a Live2DModel from given source.
-     * @param source - Can be one of: settings file URL, settings JSON object, ModelSettings instance.
+     * @param source - Can be one of: settings file URL, settings JSON object, ModelSettings, FileSystemDirectoryHandle instance.
      * @param options - Options for the creation.
      * @return Promise that resolves with the Live2DModel.
      */
     static from<M extends Live2DConstructor = typeof Live2DModel>(
         this: M,
-        source: string | JSONObject | ModelSettings,
+        source: string | JSONObject | ModelSettings | FileSystemDirectoryHandle,
         options?: Live2DFactoryOptions,
     ): Promise<InstanceType<M>> {
         const model = new this(options) as InstanceType<M>;

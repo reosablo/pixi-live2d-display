@@ -90,6 +90,21 @@ const model = await Live2DModel.from(files);
 
 If given files include no settings file, an error will be thrown.
 
+## Loading model from a local directory (experimental)
+
+`Live2DModel` can be created from a `FileSystemDirectoryHandle`.
+
+You can get the `FileSystemDirectoryHandle`s from the following API:
+
+```js
+const directoryHandle = await window.showDirectoryPicker();
+```
+
+!!! info "How this works"
+    Source files are handled by an internal helper `FileSystemHandleLoader`.
+    It looks for the model settings file inside the zip, extracts referenced resource
+    files as `File`s, then simply passes them to `FileLoader`.
+
 ## Loading model from a zip file (experimental)
 
 !!! info "How this works"
